@@ -27,6 +27,7 @@ def main():
             temps = pl.append(temps, temp)
             EEcv, Ecv, dEdB = pl.loadtxt(fileName, unpack=True, usecols=(11,12,13))
             jkAve, jkErr = aTools.jackknife(EEcv[skip:],Ecv[skip:],dEdB[skip:])
+            #jkAve, jkErr = aTools.jackknife(EEcv[skip:])
 
             Cv1Ave, Cv1Err = aTools.jackknife(EEcv[skip:])
             print '<Cv1> =',Cv1Ave, ' +/- ',Cv1Err

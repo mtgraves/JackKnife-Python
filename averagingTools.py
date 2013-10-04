@@ -15,24 +15,52 @@ def parseCMD():
     return parser.parse_args()
 
 def jackknife(data,data2=None,data3=None):
-    ''' Return jackknife average (accounting for bias) and error.'''
+    ''' 
+    Return jackknife average (accounting for bias) and error.
+    This can be passed either a single numpy array or three
+    numpy arrays.  If passed a single numpy array it will simply
+    return mean and error for that array.  If passed three, it 
+    is expected that these are the three arrays for specific heat.
+    '''
+
+    if data2!=None or data3!=None:  
+        Cv=True
+    else:
+        Cv=False
+    
     numBins = int(len(data))
     jkTerms = np.zeros(numBins)
 
-    if data2==None:     # in case of single 
-        for i in range(numBins):
-            jkTerms[i] = np.mean(np.delete(data,i))
-        dataAve = np.mean(data)
-    else:               # in case of specific heat
-        for i in range(numBins):
-            jkTerms[i] = ( np.mean(np.delete(data,i))
-                    - np.mean(np.delete(data2,i))**2 
-                    - np.mean(np.delete(data3,i)) )
-        dataAve = ( np.mean(data) - np.mean(data2)**2 
-                - np.mean(data3) )
-    
+    # compute total sums first
+    totSum1 = 0.0
+    if Cv:
+        totSum2 = 0.0
+        totSum3 = 0.0 
+    for i in range(numBins):
+        totSum1 += data[i]
+        if Cv:
+            totSum2 += data2[i]
+            totSum3 += data3[i]
+
+    # create resampled arrays
+    for i in range(numBins):
+        t1 = (totSum1 - data[i])/(1.0*numBins-1.0)
+        if Cv:
+            t2 = (totSum2 - data2[i])/(1.0*numBins-1.0)
+            t3 = (totSum3 - data3[i])/(1.0*numBins-1.0)
+            jkTerms[i] = t1 - t2*t2 - t3
+        else:
+            jkTerms[i] = t1
+
+    # compute raw average (no resampling)
+    if Cv:
+        rawAve = np.mean(data) - (np.mean(data2))**2 - np.mean(data3)
+    else:
+        rawAve = np.mean(data)
+
+    # compute mean and standard error
     jkAve = np.mean(jkTerms)
-    ActAve = 1.0*numBins*dataAve - 1.0*(numBins-1)*jkAve
+    ActAve = 1.0*numBins*rawAve - 1.0*(numBins-1)*jkAve
     jkVar = np.mean(jkTerms**2) - jkAve**2
     jkErr = np.sqrt((numBins-1)*jkVar)
 
