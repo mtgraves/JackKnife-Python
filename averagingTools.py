@@ -11,8 +11,23 @@ def parseCMD():
     parser.add_argument('-s', '--skip', type=int,
             default=1000,
             help='Number of bins to skip')
+    parser.add_argument('-c', '--crunched', action='store_true', 
+            dest='Crunched', default=False,
+            help='Is Cv data already crunched from multiple seeds?')
 
     return parser.parse_args()
+
+def getHeadersFromFile(fileName, skipLines=0):
+    ''' 
+    Get the data column headers (temperatures).
+    This assumes the headers are on the top line of the file.
+    '''
+    with open(fileName,'r') as inFile:
+        inLines = inFile.readlines()
+        temps = inLines[0].split()
+        temps.pop(0)
+
+    return temps
 
 def jackknife(data,data2=None,data3=None):
     ''' 
@@ -22,7 +37,6 @@ def jackknife(data,data2=None,data3=None):
     return mean and error for that array.  If passed three, it 
     is expected that these are the three arrays for specific heat.
     '''
-
     if data2!=None or data3!=None:  
         Cv=True
     else:
