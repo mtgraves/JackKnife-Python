@@ -12,6 +12,11 @@ def main():
     fileNames = args.fileNames
     skip = args.skip
 
+    # check which ensemble
+    canonical=True
+    if fileNames[0][0]=='g':
+        canonical=False
+
     print fileNames
     
     if check == []:
@@ -49,7 +54,10 @@ def main():
                 n += 4
         else:       # otherwise just read in individual (g)ce-estimator files
             for fileName in fileNames:
-                temp = float(fileName[13:19])
+                if canonical: 
+                    temp = float(fileName[13:19])
+                else:
+                    temp = float(fileName[14:20])
                 temps = pl.append(temps, temp)
                 E, EEcv, Ecv, dEdB = pl.loadtxt(fileName, unpack=True, 
                         usecols=(4,11,12,13))
@@ -73,7 +81,7 @@ def main():
         temps, Es, EsErr, Cvs,CvsErr = pl.loadtxt('JackKnifeData_Cv.dat', 
                 unpack=True)
    
-    errCheck = True
+    errCheck = False
     if errCheck:
         EsNorm, EsErrNorm = pl.array([]), pl.array([])
         for fileName in args.fileNames:
@@ -90,7 +98,7 @@ def main():
         pl.legend()
         pl.show()
 
-    QHO = True
+    QHO = False
     if QHO:
         # analytical solutions for 1D QHO with one particle
         tempRange = pl.arange(0.01,1.0,0.01)
@@ -125,6 +133,9 @@ def main():
     pl.ylabel('Energy [K]', fontsize=20)
     pl.grid(True)
     pl.legend(loc=2)
+
+    pl.savefig('Helium_critical_CVest.pdf', format='pdf',
+            bbox_inches='tight')
 
     pl.show()
 
