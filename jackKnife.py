@@ -23,35 +23,56 @@ def main():
         
         temps,Cvs,CvsErr = pl.array([]),pl.array([]),pl.array([])
         Es, EsErr = pl.array([]), pl.array([])
+        rhos_rhos, rhos_rhoErr = pl.array([]), pl.array([])
    
-        # open new data file, write headers
+        # open energy/ specific heat data file, write headers
         fout = open('JackKnifeData_Cv.dat', 'w')
         fout.write('#%15s\t%16s\t%16s\t%16s\t%16s\n'% (
             'T', 'E', 'Eerr', 'Cv', 'CvErr'))
         
+        # open superfluid stiffness data file, write headers
+        foutSup = open('JackKnifeData_super.dat','w')
+        foutSup.write('#%15s\t%16s\t%16s\n'%(
+            'T', 'rho_s/rho', 'rho_s/rhoErr'))
+        
         # perform jackknife analysis of data, writing to disk
         if args.Crunched:   # check if we have combined data
             tempList = aTools.getHeadersFromFile(fileNames[0])
-            print fileNames[0]
-            n = 0
             for temp in tempList:
-                print n
-                temps = pl.append(temps, float(temp))
-                E, EEcv, Ecv, dEdB = pl.loadtxt(fileNames[0],\
-                        unpack=True,usecols=(n,n+1,n+2,n+3),delimiter=',')
-                EAve, Eerr = aTools.jackknife(E[skip:])
-                jkAve, jkErr = aTools.jackknife(
-                        EEcv[skip:],Ecv[skip:],dEdB[skip:])
-                print 'T = ',float(temp),':'
-                print '<E>  = ',EAve,' +/- ',Eerr
-                print '<Cv> = ',jkAve,' +/- ',jkErr
-                Es      = pl.append(Es, EAve)
-                Cvs     = pl.append(Cvs, jkAve)
-                EsErr   = pl.append(EsErr, Eerr)
-                CvsErr  = pl.append(CvsErr, jkErr)
-                fout.write('%16.8E\t%16.8E\t%16.8E\t%16.8E\t%16.8E\n' %(
-                    float(temp), EAve, Eerr, jkAve, jkErr)) 
-                n += 4
+                temps = pl.append(temps,float(temp))
+            n,n2 = 0,0
+            for fileName in fileNames:
+                print '\n\n---',fileName,'---\n'
+                for temp in tempList:
+                    print n
+                    if 'Estimator' in fileName:
+                        E, EEcv, Ecv, dEdB = pl.loadtxt(fileName,\
+                                unpack=True, usecols=(n,n+1,n+2,n+3), delimiter=',')
+                        EAve, Eerr = aTools.jackknife(E[skip:])
+                        jkAve, jkErr = aTools.jackknife(
+                                EEcv[skip:],Ecv[skip:],dEdB[skip:])
+                        print 'T = ',float(temp),':'
+                        print '<E>  = ',EAve,' +/- ',Eerr
+                        print '<Cv> = ',jkAve,' +/- ',jkErr
+                        Es      = pl.append(Es, EAve)
+                        Cvs     = pl.append(Cvs, jkAve)
+                        EsErr   = pl.append(EsErr, Eerr)
+                        CvsErr  = pl.append(CvsErr, jkErr)
+                        fout.write('%16.8E\t%16.8E\t%16.8E\t%16.8E\t%16.8E\n' %(
+                            float(temp), EAve, Eerr, jkAve, jkErr)) 
+                        n += 4
+                    elif 'Super' in fileName:
+                        rhos_rho = pl.loadtxt(fileName, \
+                                unpack=True, usecols=(n2,), delimiter=',')
+                        superAve, superErr = aTools.jackknife(rhos_rho[skip:])
+                        print 'rho_s/rho = ', superAve,' +/- ',superErr
+                        rhos_rhos   = pl.append(rhos_rhos, superAve)
+                        rhos_rhoErr = pl.append(rhos_rhoErr, superErr)
+                        foutSup.write('%16.8E\t%16.8E\t%16.8E\n' %(
+                            float(temp), superAve, superErr))
+                        n2 += 1
+
+
         else:       # otherwise just read in individual (g)ce-estimator files
             for fileName in fileNames:
                 if canonical: 
@@ -78,9 +99,12 @@ def main():
 
     else:
         print 'Found existing data file in CWD.'
-        temps, Es, EsErr, Cvs,CvsErr = pl.loadtxt('JackKnifeData_Cv.dat', 
+        temps, Es, EsErr, Cvs, CvsErr = pl.loadtxt('JackKnifeData_Cv.dat', 
+                unpack=True)
+        temps, rhos_rhos, rhos_rhoErr = pl.loadtxt('JackKnifeData_super.dat', 
                 unpack=True)
    
+
     errCheck = False
     if errCheck:
         EsNorm, EsErrNorm = pl.array([]), pl.array([])
@@ -136,6 +160,15 @@ def main():
 
     pl.savefig('Helium_critical_CVest.pdf', format='pdf',
             bbox_inches='tight')
+
+    if ShareAxis:
+        pl.figure(2)
+    else:
+        pl.figure(3)
+    pl.errorbar(temps, rhos_rhos, rhos_rhoErr)
+    pl.xlabel('Temperature [K]', fontsize=20)
+    pl.ylabel('Superfluid Stiffness', fontsize=20)
+    pl.grid(True)
 
     pl.show()
 
